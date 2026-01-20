@@ -4,11 +4,11 @@
 pimd    !method
 nvt      !ensemble (nvt or nve)
 pileg   !thermostat (pile, pileg)
+500.0   !Thermostat contraint for Classical (tau0 in fs)
+500.0   !Thermostt contraint for PI beads  (tau0 in fs)
 300.0   !temperature for PIMD run
 normal_manual     	!Use normal; progagation: indicates which scheme to use in moving the bead: none (single bead velocity verlet), normal (normal mode prop)
 .true.             	!init_vel_rp: initialize RP velocities from Boltzmann. If .F., read in from file rp-vel.dat
 .false.			!Are contraints present (frozen atoms, centroid contraints)
-300.0   !Thermostat contraint for Classical (tau0 in fs)
-250.0   !Thermostt contraint for PI beads  (tau0 in fs)
 low    	!Print level (low/high)
 
