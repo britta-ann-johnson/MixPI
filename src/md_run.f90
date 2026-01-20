@@ -1085,22 +1085,34 @@ TYPE(md_info)                            ::md
 integer                                  ::irp, ixx, ibead, iclassical, location, i
 real(kind=8)                             ::dist
 real(kind=8),dimension(md%space_dim)     ::dist_vec, force
-character(len=2)                         ::match_type
+character(len=6)                         ::match_type
+real(kind=8)                             ::charge_sign
 
 
 !open(999,file='xx_force_update.dat',position='append')
 do irp = 1, path_integral%num_rp
   !if (trim(path_integral%rp(irp)%particle_label(1) &
   !  (len(trim(path_integral%rp(irp)%particle_label(1)))-1:)) == ANY(md%xx_types(:))) then
-  if (path_integral%rp(irp)%charge > 0.0d0) then 
+  !if (path_integral%rp(irp)%charge > 0.0d0) then 
+  charge_sign=path_integral%rp(irp)%charge*md%xx_charge
+  if (charge_sign < 0) then
     match_type = path_integral%rp(irp)%particle_label(1)(len(trim(path_integral%rp(irp)%particle_label(1)))-1:)
     !write(*,*)' match_type is ', match_type
     location = 0
     do i = 1, SIZE(md%xx_types)
-      if (md%xx_types(i) == match_type) then
+      if (trim(adjustl(md%xx_types(i))) == trim(adjustl(match_type))) then
+        !write(*,*)' md%xx_types(i) matches match_type ', md%xx_types(i), match_type
         location = i
       endif
     enddo
+    if (location == 0 .and. trim(adjustl(md%xx_types(SIZE(md%xx_types))))=='ALL') then
+      location = SIZE(md%xx_types)
+    endif
+    if (location == 0) then 
+            write(*,*)' following type has charge but not list ', match_type
+    else
+        write(*,*)' md%xx_types(i) matches match_type ', md%xx_types(location), match_type
+    endif
     !write(*,*) 'location is ', location
       !if (location == 0) write(*,*) "ERROR IN RCUT LIST"
     if (location > 0) then
@@ -1162,14 +1174,25 @@ do irp = 1, path_integral%num_rp
 enddo
 do iclassical = 1, classical%natoms
   !if (trim(classical%atom_kinds(iclassical)) == ANY(md%xx_types(:))) then
-  if (classical%ff_atom_charges(iclassical) > 0.0d0) then
-    match_type = classical%atom_kinds(iclassical)
+  !if (classical%ff_atom_charges(iclassical) > 0.0d0) then
+  charge_sign=classical%ff_atom_charges(iclassical)*md%xx_charge
+  if (charge_sign < 0) then
+    match_type = trim(adjustl(classical%atom_kinds(iclassical)))
     location = 0
     do i = 1, SIZE(md%xx_types)
-      if (md%xx_types(i) == match_type) then
+      if (trim(adjustl(md%xx_types(i))) == trim(adjustl(match_type))) then
+        !write(*,*)' md%xx_types(i) matches match_type ', md%xx_types(i), match_type
         location = i
       endif
     enddo
+    if (location == 0 .and. trim(adjustl(md%xx_types(SIZE(md%xx_types))))=='ALL') then
+      location = SIZE(md%xx_types)
+    endif
+    if (location == 0) then 
+            write(*,*)' following type has charge but not list ', match_type
+    else
+        write(*,*)' md%xx_types(i) matches match_type ', md%xx_types(location), match_type
+    endif
     !write(*,*) 'location is ', location
     if (location > 0) then
       do ixx = 1, path_integral%rp(md%xx_atom_num)%num_beads
@@ -1213,20 +1236,26 @@ integer                                  ::irp, ixx, ibead, iclassical, location
 real(kind=8)                             ::dist
 real(kind=8)                             ::tot_pot, pot
 real(kind=8),dimension(md%space_dim)     ::dist_vec
-character(len=2)                         ::match_type
+character(len=6)                         ::match_type
+real(kind=8)                             ::charge_sign
 
 
 do irp = 1, path_integral%num_rp
   !if (trim(path_integral%rp(irp)%particle_label(1) &
   !  (len(trim(path_integral%rp(irp)%particle_label(1)))-1:)) == ANY(md%xx_types(:))) then
-  if (path_integral%rp(irp)%charge > 0.0d0) then
+  !if (path_integral%rp(irp)%charge > 0.0d0) then
+  charge_sign=path_integral%rp(irp)%charge*md%xx_charge
+  if (charge_sign < 0) then
     match_type = path_integral%rp(irp)%particle_label(1)(len(trim(path_integral%rp(irp)%particle_label(1)))-1:)
     location = 0
     do i = 1, SIZE(md%xx_types)
-      if (md%xx_types(i) == match_type) then
+      if (trim(adjustl(md%xx_types(i))) == trim(adjustl(match_type))) then
         location = i
       endif
     enddo
+    if (location == 0 .and. trim(adjustl(md%xx_types(SIZE(md%xx_types))))=='ALL') then
+      location = SIZE(md%xx_types)
+    endif
     !write(*,*) 'location is ', location
     if (location > 0) then
       do ixx = 1, path_integral%rp(md%xx_atom_num)%num_beads
@@ -1266,14 +1295,19 @@ enddo
 do iclassical = 1, classical%natoms
   !if (trim(classical%atom_kinds(iclassical)) == ANY(md%xx_types(:))) then
   !if (ANY(trim(classical%atom_kinds(iclassical)) == md%xx_types(:))) then
-  if (classical%ff_atom_charges(iclassical) > 0.0d0) then
-    match_type = classical%atom_kinds(iclassical)
+  !if (classical%ff_atom_charges(iclassical) > 0.0d0) then
+  charge_sign=classical%ff_atom_charges(iclassical)*md%xx_charge
+  if (charge_sign < 0) then
+    match_type = trim(adjustl(classical%atom_kinds(iclassical)))
     location = 0
     do i = 1, SIZE(md%xx_types)
-      if (md%xx_types(i) == match_type) then
+      if (trim(adjustl(md%xx_types(i))) == trim(adjustl(match_type))) then
         location = i
       endif
     enddo
+    if (location == 0 .and. trim(adjustl(md%xx_types(SIZE(md%xx_types))))=='ALL') then
+      location = SIZE(md%xx_types)
+    endif
     !write(*,*) 'location is ', location
     if (location > 0) then
       do ixx = 1, path_integral%rp(md%xx_atom_num)%num_beads
@@ -2058,7 +2092,7 @@ do i = 1, classical%natoms
 enddo
 if (md%n_fixed_atoms > 0) then
   icount = md%n_fixed_atoms
-  do while (md%fixed_list(icount,1) > path_integral%num_rp)
+  do while (md%fixed_list(icount,1) > path_integral%num_rp .and. icount>0)
     if (md%fixed_list(icount,2) == 1) then
       classical%p(md%fixed_list(icount,1)-path_integral%num_rp,1) = 0.0d0
     endif
@@ -2069,6 +2103,7 @@ if (md%n_fixed_atoms > 0) then
       classical%p(md%fixed_list(icount,1)-path_integral%num_rp,3) = 0.0d0
     endif
     icount = icount - 1
+    if (icount < 1) EXIT
   enddo
 endif
 if (path_integral%num_rp > 0) then

@@ -547,13 +547,13 @@ if (md%centroid) then
     if (icount > md%n_centroids ) EXIT
   enddo
 endif
-  open(222,file='rp-vel-2.dat')
-  do i = 1, path_integral%num_rp
-    do j = 1, path_integral%rp(i)%num_beads
-      write(222,'(3f10.6)') path_integral%rp(i)%initialized_velocities(j,:)
-    enddo
-  enddo
-  close(222)
+  !open(222,file='rp-vel-2.dat')
+  !do i = 1, path_integral%num_rp
+  !  do j = 1, path_integral%rp(i)%num_beads
+  !    write(222,'(3f10.6)') path_integral%rp(i)%initialized_velocities(j,:)
+  !  enddo
+  !enddo
+  !close(222)
 else
   do irp = 1, path_integral%num_rp
     path_integral%rp(irp)%initialized_velocities(:,:) = 0.0d0
@@ -893,7 +893,7 @@ do i = 1, path_integral%num_rp
       write(*,*)' ------ELECTRON PI IS PRESENT------ '
       write(*,*)' looking for xx_rcut.inp file to describe modified electrostatic interactions '
       open(111,file='xx_rcut.inp')
-        read(111,*) num_rcut
+        read(111,*) num_rcut, md%xx_charge
         write(*,*)' num_rcut is ', num_rcut
         allocate(md%xx_types(num_rcut),md%xx_rcut(num_rcut),md%xx_exclude(num_rcut))
         do i_num = 1, num_rcut 

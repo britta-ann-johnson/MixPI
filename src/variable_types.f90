@@ -87,9 +87,10 @@ TYPE md_info
   INTEGER                                            :: print_step
   LOGICAL                                            ::xx_present = .false.
   REAL(kind=8),ALLOCATABLE,DIMENSION(:)              ::xx_rcut
-  CHARACTER(LEN=2),ALLOCATABLE,DIMENSION(:)          ::xx_types
+  CHARACTER(LEN=6),ALLOCATABLE,DIMENSION(:)          ::xx_types
   LOGICAL,ALLOCATABLE,DIMENSION(:)                   ::xx_exclude
   INTEGER                                            ::xx_atom_num
+  REAL(kind=8)                                       ::xx_charge
   INTEGER                                            ::run_average
 END TYPE md_info
 
@@ -105,7 +106,7 @@ TYPE classical_type
   REAL(KIND=8),ALLOCATABLE,DIMENSION(:,:)          ::force
   REAL(KIND=8),ALLOCATABLE,DIMENSION(:,:)        ::i_velocity
   REAL(KIND=8),ALLOCATABLE,DIMENSION(:)          ::mass
-  CHARACTER(LEN=2),ALLOCATABLE,DIMENSION(:)      ::atom_kinds
+  CHARACTER(LEN=6),ALLOCATABLE,DIMENSION(:)      ::atom_kinds
   REAL(KIND=8),ALLOCATABLE,DIMENSION(:,:)        ::x,p
   REAL(KIND=8),ALLOCATABLE,DIMENSION(:,:,:)      ::traj
   REAL(KIND=8)                                   ::kinetic, potential
