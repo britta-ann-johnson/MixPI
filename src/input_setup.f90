@@ -133,8 +133,8 @@ if (md%fixed) then
       md%fixed_list(i,2:md%space_dim+1) = (/1,1,1/)
     endif
     if (para_var%my_rank == 0) then
-    write(*,*)' checking fixed_list'
-    write(*,*) md%fixed_list(i,1:md%space_dim+1)
+            if (i==1) write(*,*)' list of fixed atoms'
+            write(*,*) md%fixed_list(i,1:md%space_dim+1)
     endif
   enddo
 endif
@@ -162,8 +162,8 @@ if (md%centroid) then
         md%centroid_list(i,2:md%space_dim+1) = (/1,1,1/)
       endif
       if (para_var%my_rank == 0) then
-      write(*,*)' checking centroid_list'
-      write(*,*) md%centroid_list(i,1:md%space_dim+1)
+              if (i==1) write(*,*)' checking centroid_list'
+              write(*,*) md%centroid_list(i,1:md%space_dim+1)
       endif
     enddo
   else if (trim(adjustl(type))=='range') then
@@ -186,7 +186,7 @@ if (md%centroid) then
         md%centroid_list(1,2:md%space_dim+1) = (/1,1,1/)
       endif
       if (para_var%my_rank == 0) then
-        write(*,*)' checking centroid_list range'
+              if (i==1) write(*,*)' checking centroid_list range'
         write(*,*) md%centroid_list(1,1:md%space_dim+1)
       endif
       do i = 2, md%n_centroids
@@ -1150,7 +1150,7 @@ enddo
 if (md%fixed) then
   icount = md%n_fixed_atoms
   do while (md%fixed_list(icount,1) > path_integral%num_rp)
-    write(*,*)' fixing classical atom ', md%fixed_list(icount,1)
+    !write(*,*)' fixing classical atom ', md%fixed_list(icount,1)
     if (md%fixed_list(icount,2) == 1) then
       classical%i_velocity(md%fixed_list(icount,1)-path_integral%num_rp,1) = 0.0d0
     endif
@@ -1198,21 +1198,21 @@ if (md%fixed) then
       if (md%fixed_list(j,1)==i) then 
         md%n_constraints = md%n_constraints + sum(md%fixed_list(j,2:md%space_dim+1))&
           *path_integral%rp(i)%num_beads
-        write(*,*)' RP fixed constraint ', md%fixed_list(j,1)
+        !write(*,*)' RP fixed constraint ', md%fixed_list(j,1)
         md%x_cnst = md%x_cnst + md%fixed_list(j,2)*path_integral%rp(md%fixed_list(j,1))%num_beads
         md%y_cnst = md%y_cnst + md%fixed_list(j,3)*path_integral%rp(md%fixed_list(j,1))%num_beads
         md%z_cnst = md%z_cnst + md%fixed_list(j,4)*path_integral%rp(md%fixed_list(j,1))%num_beads
       endif
     enddo
   enddo
-  write(*,*) 'num path integral ', path_integral%num_rp
+  !write(*,*) 'num path integral ', path_integral%num_rp
   do i = 1, classical%natoms
     do j = 1, md%n_fixed_atoms
-      write(*,*) 'if state', md%fixed_list(j,1), path_integral%num_rp + i
+      !write(*,*) 'if state', md%fixed_list(j,1), path_integral%num_rp + i
       if (md%fixed_list(j,1)==path_integral%num_rp+i) then 
         md%n_constraints = md%n_constraints + &
           sum(md%fixed_list(j,2:md%space_dim+1))
-        write(*,*)' classical constraint ', md%fixed_list(j,1)
+        !write(*,*)' classical constraint ', md%fixed_list(j,1)
         md%x_cnst = md%x_cnst + md%fixed_list(j,2)
         md%y_cnst = md%y_cnst + md%fixed_list(j,3)
         md%z_cnst = md%z_cnst + md%fixed_list(j,4)
@@ -1427,11 +1427,11 @@ if ( (md%init_vel .eqv. .true.) ) then
   do i = 1, classical%natoms
     if (md%fixed) then
       if (.not. ANY(md%fixed_list(:,1)==i+path_integral%num_rp)) then
-        write(*,*)' classical fixed'
+        !write(*,*)' classical fixed'
         classical%i_velocity(i,:) = classical%i_velocity(i,:) - com_vel(:)
       endif
     else
-        write(*,*)' classical not fixed'
+        !write(*,*)' classical not fixed'
       classical%i_velocity(i,:) = classical%i_velocity(i,:) - com_vel(:)
     endif
   enddo
