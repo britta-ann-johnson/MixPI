@@ -1069,7 +1069,8 @@ else
 if (para_var%my_rank == 0) write(*,*)' ------READS IN CLASSICAL OUTER LOOP VELOCITIES FROM ATOM-VEL.DAT------'
   open(222,file='atom-vel.dat')
   do i = 1, classical%natoms
-    read(222,*) classical%i_velocity(i,:)
+    read(222,*) classical%i_velocity(i,:) 
+    classical%i_velocity(i,:) = classical%i_velocity(i,:)*(AtoBohr/fstota)
   enddo
   close(222)
 endif
