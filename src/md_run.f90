@@ -1945,7 +1945,7 @@ do i = 1, classical%natoms
 enddo
 if (md%n_fixed_atoms > 0) then
   icount = md%n_fixed_atoms
-  do while (md%fixed_list(icount,1) > path_integral%num_rp)
+  do while (md%fixed_list(icount,1) > path_integral%num_rp .and. icount>0)
     if (md%fixed_list(icount,2) == 1) then
       classical%p(md%fixed_list(icount,1)-path_integral%num_rp,1) = 0.0d0
     endif
@@ -1956,6 +1956,7 @@ if (md%n_fixed_atoms > 0) then
       classical%p(md%fixed_list(icount,1)-path_integral%num_rp,3) = 0.0d0
     endif
     icount = icount - 1
+    if (icount < 1) EXIT
   enddo
 endif
 !calculcate transform matrix
