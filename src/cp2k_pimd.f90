@@ -61,7 +61,7 @@ include 'mpif.h'
 !and md_run.inp
   !write(*,*)' read in the MD input '
   write(*,*)' my rank is ', para_var%my_rank, ' out of ', para_var%size_rank, ' before_read_in_md '
-  CALL read_in_md(md, para_var)
+  CALL read_in_md(md, classical, para_var)
 ! ------------------------------------------- !
   ! ----------------------------------- !
   CALL cp2k_pimd_initialize(path_integral, classical, md, para_var)

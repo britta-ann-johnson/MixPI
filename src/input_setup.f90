@@ -27,9 +27,10 @@ contains
 ! model_no = ?? Don't think used anymore       !
 ! temp = temperature (K) of the system         !
 ! -------------------------------------------- !
-SUBROUTINE read_in_md(md, para_var)
+SUBROUTINE read_in_md(md, classical, para_var)
 implicit none
 TYPE(md_info)     :: md
+TYPE(classical_type)                   ::classical
 INTEGER           :: icount, REASON, tcount, i
 CHARACTER(LEN=1)  ::skip_check
 CHARACTER(LEN=3)  ::degree
@@ -44,15 +45,21 @@ read(101,*) md%nsteps
 read(101,*) md%freq_print
 read(101,*) md%dt
 read(101,*) md%method 
+read(101,*) md%pimethod !'mixts', or 'allreplica'
+write(*,*) 'md%pimethod is ', md%pimethod 
+read(101,*) md%kin_mass
+write(*,*) 'md%kin_mass is ', md%kin_mass
 read(101,*) md%ensemble
-if (md%method /= 'pimd' .and. md%method /= 'rpmd') write(*,*)' this method is not supported'
+if (md%method /= 'pimd') write(*,*)' this method is not supported'
+if (md%pimethod /= 'mixts' .or. md%pimethod /= 'allrep') write(*,*)' this PI method is not supported'
 if (md%ensemble == 'nvt') read(101,*) md%thermostat
 if (md%ensemble == 'nvt') read(101,*) md%classical_lang
 if (md%ensemble == 'nvt') read(101,*) md%rp_lang
-!read(101,*) md%space_dim
 md%space_dim=3
-!read(101,*) md%obtain_force
-!read(101,*) md%model_no
+read(101,*) classical%cp2k_input_file
+read(101,*) classical%cp2k_output_file
+read(101,*) classical%atom_present
+classical%cp2k_conn_file = 'classical_molset.pot'
 read(101,*) md%temp
 read(101,*) md%propagation
 read(101,*) md%init_vel
@@ -357,7 +364,7 @@ do while (irp < path_integral%num_molecules)
   allocate(molecules(irp)%atoms(molecules(irp)%natoms))
   molecules(irp)%atoms(:)%update_mass = -1.0
   do iatom = 1, molecules(irp)%natoms
-    if (trim(adjustl(md%method)) == 'pimd') then
+    if (md%kin_mass) then
       read(101,*) molecules(irp)%atoms(iatom)%nbead, molecules(irp)%atoms(iatom)%update_mass
     else
       read(101,*) molecules(irp)%atoms(iatom)%nbead
@@ -369,7 +376,7 @@ do while (irp < path_integral%num_molecules)
     molecules(irp+i-1)%natoms = molecules(irp)%natoms
     allocate(molecules(irp+i-1)%atoms(molecules(irp)%natoms))
     molecules(irp+i-1)%atoms(:)%nbead = molecules(irp)%atoms(:)%nbead
-    if (trim(adjustl(md%method)) == 'pimd') then
+    if (md%kin_mass) then
       molecules(irp+i-1)%atoms(:)%update_mass = molecules(irp)%atoms(:)%update_mass
     endif
     molecules(irp+i-1)%first = .false.
@@ -386,7 +393,7 @@ do i = 1, path_integral%num_molecules
   do j = 1, molecules(i)%natoms
     irp = irp + 1
     path_integral%rp(irp)%num_beads = molecules(i)%atoms(j)%nbead
-    if (trim(adjustl(md%method)) == 'pimd') then
+    if (md%kin_mass) then
       path_integral%rp(irp)%kinetic_mass = molecules(i)%atoms(j)%update_mass*amutome
     endif
   enddo
@@ -650,14 +657,14 @@ vel_atomic = .false.
 ! CONTAINS ANY INPUT RELEVANT TO THE CLASSICAL --- !
 ! VARIABLES. ------------------------------------- !
 ! ------------------------------------------------ !
-if (para_var%my_rank == 0) write(*,*)' read in file_info.inp '
-open(101,file='file_info.inp')
-read(101,*) classical%cp2k_input_file
-read(101,*) classical%cp2k_output_file
-read(101,*) classical%cp2k_structure_file
-read(101,*) classical%atom_present
-if (classical%atom_present) read(101,*) classical%cp2k_conn_file
-close(101)
+!if (para_var%my_rank == 0) write(*,*)' read in file_info.inp '
+!open(101,file='file_info.inp')
+!read(101,*) classical%cp2k_input_file
+!read(101,*) classical%cp2k_output_file
+!read(101,*) classical%cp2k_structure_file
+!read(101,*) classical%atom_present
+!if (classical%atom_present) read(101,*) classical%cp2k_conn_file
+!close(101)
 if (para_var%my_rank == 0) then
 write(*,*) 'cp2k input file ', classical%cp2k_input_file
 write(*,*) 'cp2k output file ', classical%cp2k_output_file
@@ -685,6 +692,7 @@ CALL cp2k_create_force_env(classical%cp2k_env_flag,trim(classical%cp2k_input_fil
 ! RELEVANT ARRAYS FOR STORAGE. ------------------- !
 ! ------------------------------------------------ !
 !if (para_var%my_rank == 0) then
+if (md%pimethod == 'mixts') then
   CALL cp2k_get_natom(classical%cp2k_env_flag, total_natoms)
 
   CALL pimd_initialize(path_integral,md, para_var)
@@ -698,6 +706,7 @@ CALL cp2k_create_force_env(classical%cp2k_env_flag,trim(classical%cp2k_input_fil
   !write(*,*)' call cp2k get positions ', total_natoms*md%space_dim
 CALL cp2k_get_positions(classical%cp2k_env_flag,position_array,total_natoms*md%space_dim)
 !write(*,*)' done calling cp2k get positions '
+
 
 icount = 0
 do irp = 1, path_integral%num_rp
@@ -720,11 +729,63 @@ do i = 1, classical%natoms
      (i+path_integral%total_beads)*md%space_dim)
 enddo
 
+
 !write(*,*)' call cp2k calc energy force '
-call MPI_BARRIER(MPI_COMM_WORLD,ierror)
-CALL cp2k_calc_energy_force(classical%cp2k_env_flag)
-CALL cp2k_get_potential_energy(classical%cp2k_env_flag, pot_energy)
+!call MPI_BARRIER(MPI_COMM_WORLD,ierror)
+!CALL cp2k_calc_energy_force(classical%cp2k_env_flag)
+!CALL cp2k_get_potential_energy(classical%cp2k_env_flag, pot_energy)
 !write(*,*)' initial potential energy is ', pot_energy
+
+else if (md%pimethod == 'allrep') then
+  CALL cp2k_get_natom(classical%cp2k_env_flag, total_natoms)
+
+  CALL pimd_initialize(path_integral,md, para_var)
+  if (total_natoms /= path_integral%num_rp) then
+    write(*,*)' the total number of atoms in the system does not match the total number of RPs specified by rp_molecule_info.inp for allrep '
+    write(*,*)' total natoms from cp2k is ', total_natoms, ' and total num_rp is ', path_integral%num_rp
+    STOP
+  endif
+  total_natoms = total_natoms*path_integral%rp(1)%num_beads
+  
+
+  classical%natoms = total_natoms - path_integral%total_beads
+  if (classical%natoms /= 0) then
+    write(*,*)' the number of classical atoms is not correct for allrep method '
+    STOP
+  endif
+  !write(*,*)' total number of classical atoms is ', classical%natoms
+
+  ALLOCATE(classical%i_position(classical%natoms,md%space_dim))
+  ALLOCATE(position_array(path_integral%num_rp*md%space_dim))
+  !write(*,*)' call cp2k get positions ', total_natoms*md%space_dim
+  CALL cp2k_get_positions(classical%cp2k_env_flag,position_array,path_integral%num_rp*md%space_dim)
+!write(*,*)' done calling cp2k get positions '
+
+  icount = 0
+  do irp = 1, path_integral%num_rp
+  !write(*,*)' path integral number ', irp
+  icount = icount + 1
+    do ibead = 1, path_integral%rp(irp)%num_beads
+      !write(*,*)' icout is ', icount
+      !write(*,*)' position index is ', (icount-1)*md%space_dim+1, icount*md%space_dim
+      path_integral%rp(irp)%i_position(ibead,1:md%space_dim) = position_array( (icount-1)*md%space_dim+1:icount*md%space_dim)
+    enddo
+    do j = 1, md%space_dim
+      !write(*,*)' path integral centroid dimension ', j
+      path_integral%rp(irp)%i_centroid(j) = sum(path_integral%rp(irp)%i_position(:,j))/real(path_integral%rp(irp)%num_beads)
+      !!write(*,*)' the initial calculcated i_centroid is ', path_integral%rp(irp)%i_centroid(j)/AtoBohr
+    enddo
+  enddo
+
+!write(*,*)' call cp2k calc energy force '
+!call MPI_BARRIER(MPI_COMM_WORLD,ierror)
+!CALL cp2k_calc_energy_force(classical%cp2k_env_flag)
+!CALL cp2k_get_potential_energy(classical%cp2k_env_flag, pot_energy)
+!write(*,*)' initial potential energy is ', pot_energy
+else
+  write(*,*)' the path integral method specified is not supported '
+  STOP
+endif
 
 DEALLOCATE(position_array)
 
@@ -864,7 +925,7 @@ if (para_var%my_rank == 0) write(*,*) 'read in PI PSF Files '
 do i = 1, path_integral%num_rp
   if (path_integral%rp(i)%molecule_atom_number == 1) then
     open(103,file=trim(adjustl(path_integral%rp(i)%psf_file)))
-    !write(*,*)' opened ',trim(adjustl(path_integral%rp(i)%psf_file))
+    write(*,*)' opened ',trim(adjustl(path_integral%rp(i)%psf_file))
     read(103,*) char_check
     read(103,*) 
     read(103,*) nskip
@@ -873,8 +934,9 @@ do i = 1, path_integral%num_rp
     enddo
     read(103,*)
     read(103,*) natom_psf
-    !write(*,*)' natom_psf ', natom_psf
+    write(*,*)' natom_psf ', natom_psf
     read(103,psf_format) i_dum, mol_name, mol_num, res_id, atom_id, atom_ff_type, atom_charge, atom_mass
+    write(*,*)' read in atom ', i_dum 
     if (i_dum /= 1) then
       write(*,*)' error in PI PSF read in for path integral ', i, ' with number ', &
 	      path_integral%rp(i)%molecule_atom_number, 'and i_dum ', i_dum
@@ -905,54 +967,83 @@ do i = 1, path_integral%num_rp
     endif
 
 
+    if (md%pimethod == 'mixts') then
+      path_integral%rp(i)%harm_mass = atom_mass * amutome
+      path_integral%rp(i)%charge = atom_charge
+    else if (md%pimethod == 'allrep') then
+      path_integral%rp(i)%harm_mass = atom_mass * amutome/dble(real(path_integral%rp(1)%num_beads))
+      path_integral%rp(i)%charge = atom_charge /dble(real(path_integral%rp(1)%num_beads))
+    else
+      write(*,*) 'error in harmonic mass and charge read in'
+      STOP
+    endif
 
-    path_integral%rp(i)%harm_mass = atom_mass * amutome
+
+    !path_integral%rp(i)%harm_mass = atom_mass * amutome
     !path_integral%rp(i)%harm_mass = (atom_mass*real(path_integral%rp(i)%num_beads))*amutome
-    path_integral%rp(i)%charge = atom_charge
-    do ibead = 2, path_integral%rp(i)%num_beads
-      read(103,*) i_dum
-    enddo
+    !path_integral%rp(i)%charge = atom_charge
+    if (md%pimethod == 'mixts') then
+      do ibead = 2, path_integral%rp(i)%num_beads
+        read(103,*) i_dum
+        !write(*,*)' read in atom ', i_dum 
+      enddo
+    endif
     if (i_dum == natom_psf) then
       close(103)
-      !write(*,*)' closed file '
+      write(*,*)' closed file '
     endif
   else
     read(103,psf_format) i_dum, mol_name, mol_num, res_id, atom_id, atom_ff_type, atom_charge, atom_mass
+    write(*,*)' read in atom ', i_dum 
     !if ((i_dum-SUM(path_integral%rp(:i-1)%num_beads)+(i-1)) /= path_integral%rp(i)%molecule_atom_number) then
     !  write(*,*)' error in PI PSF read in for ', i_dum, SUM(path_integral%rp(:i-1)%num_beads), i
     !  STOP
     !endif
 
+    if (md%pimethod == 'mixts') then
+      path_integral%rp(i)%harm_mass = atom_mass * amutome
+      path_integral%rp(i)%charge = atom_charge
+    else if (md%pimethod == 'allrep') then
+      path_integral%rp(i)%harm_mass = atom_mass * amutome/dble(real(path_integral%rp(1)%num_beads))
+      path_integral%rp(i)%charge = atom_charge /dble(real(path_integral%rp(1)%num_beads))
+    else
+      write(*,*) 'error in harmonic mass and charge read in'
+      STOP
+    endif
+
     path_integral%rp(i)%particle_label(:) = atom_ff_type
-    path_integral%rp(i)%harm_mass = atom_mass * amutome
+    !path_integral%rp(i)%harm_mass = atom_mass * amutome
     !path_integral%rp(i)%harm_mass = (atom_mass*real(path_integral%rp(i)%num_beads))*amutome
-    path_integral%rp(i)%charge = atom_charge
-    do ibead = 2, path_integral%rp(i)%num_beads
-      read(103,*) i_dum
-    enddo
+    !path_integral%rp(i)%charge = atom_charge
+    if (md%pimethod == 'mixts') then
+      do ibead = 2, path_integral%rp(i)%num_beads
+        read(103,*) i_dum
+        write(*,*)' read in atom ', i_dum 
+      enddo
+    endif
 
     if (i_dum == natom_psf) then
       close(103)
-      !write(*,*)' closed file '
+      write(*,*)' closed file '
     endif
     !write(*,*)' harm mass for ', i,' is ', path_integral%rp(i)%harm_mass/amutome
     !write(*,*)' kinetic mass for ', i,' is ', path_integral%rp(i)%kinetic_mass/amutome
 
   endif
 
-  if (trim(adjustl(md%method)) == 'rpmd') then
+  if (.NOT. md%kin_mass) then
     path_integral%rp(i)%kinetic_mass = path_integral%rp(i)%harm_mass
   endif
     !write(*,*)' harm mass for ', i,' is ', path_integral%rp(i)%harm_mass/amutome
     !write(*,*)' kinetic mass for ', i,' is ', path_integral%rp(i)%kinetic_mass/amutome
 enddo
 
-!open(111,file='path_integral_info.dat')
-!do i = 1, path_integral%num_rp
-!    write(111,*) i, path_integral%rp(i)%particle_label, path_integral%rp(i)%kinetic_mass/amutome, &
-!	    path_integral%rp(i)%harm_mass/amutome, path_integral%rp(i)%charge
-!enddo
-!close(111)
+open(111,file='path_integral_info.dat')
+do i = 1, path_integral%num_rp
+    write(111,*) i, path_integral%rp(i)%particle_label, path_integral%rp(i)%kinetic_mass/amutome, &
+	    path_integral%rp(i)%harm_mass/amutome, path_integral%rp(i)%charge
+enddo
+close(111)
 
 if (md%ensemble == 'nvt') then
   do irp = 1, path_integral%num_rp
@@ -1059,7 +1150,7 @@ if (para_var%my_rank == 0) write(*,*)' ------RESCALE VELOCITIES FOR TEMPERATURE,
   open(222,file='rp-vel.dat')
   do i = 1, path_integral%num_rp
     do j = 1, path_integral%rp(i)%num_beads
-      write(222,'(3f20.15)') path_integral%rp(i)%initialized_velocities(j,:)
+      write(222,'(3f20.15)') path_integral%rp(i)%initialized_velocities(j,:) / (AtoBohr/fstota)
     enddo
   enddo
   close(222)
@@ -1138,9 +1229,9 @@ do iatom = 1, classical%natoms
   do i = 1, md%space_dim
     CALL rnd_gauss(0.0d0,dsqrt(1.0d0/( classical%beta * classical%mass(iatom) )), rnd_vel)
     classical%i_velocity(iatom,i) = rnd_vel
-    !write(*,*)' rnd vel is ', rnd_vel
-    !write(*,*)' classical%beta is ', classical%beta
-    !write(*,*)' classical%mass is ', classical%mass(iatom)
+    write(*,*)' rnd vel is ', rnd_vel
+    write(*,*)' classical%beta is ', classical%beta
+    write(*,*)' classical%mass is ', classical%mass(iatom)
   enddo
   !open(222,file='atom-vel-2.dat')
   !do i = 1, classical%natoms
@@ -1165,11 +1256,11 @@ if (md%fixed) then
     icount = icount - 1
   enddo
 endif
-  !open(222,file='atom-vel-1.dat')
-  !do i = 1, classical%natoms
-  !  write(222,'(3d20.6)') classical%i_velocity(i,:)
-  !enddo
-  !close(222)
+  open(222,file='atom-vel-1.dat')
+  do i = 1, classical%natoms
+    write(222,'(3d20.6)') classical%i_velocity(i,:)/(AtoBohr/fstota)
+  enddo
+  close(222)
 else
   classical%i_velocity(:,:) = 0.0d0
 endif

@@ -61,11 +61,10 @@ TYPE md_info
   REAL(KIND=8)                        :: dt
   REAL(KIND=8)                        :: temp
   INTEGER                             :: space_dim       !dof in space (1d,2d,3d)
-  CHARACTER(LEN=100)                                 :: obtain_force    !cp2k, model - indicates source of the external potential
   CHARACTER(LEN=3)                                   :: ensemble
   CHARACTER(LEN=5)                                   :: thermostat
-  CHARACTER(LEN=4)                                   :: method
-  REAL(KIND=8)                                       :: model_no        !if model, indicate which model to use
+  CHARACTER(LEN=6)                                   :: method
+  CHARACTER(LEN=10)                                  :: pimethod
   REAL(KIND=8)                                       :: kinetic_primitive, potential_virial, kinetic_virial
   REAL(KIND=8)                                       :: instant_temp
   CHARACTER(LEN=20)                                  :: propagation     !none=single bead moves, normal=normal mode, Cayley 
@@ -92,6 +91,7 @@ TYPE md_info
   INTEGER                                            ::xx_atom_num
   REAL(kind=8)                                       ::xx_charge
   INTEGER                                            ::run_average
+  LOGICAL                                            ::kin_mass
 END TYPE md_info
 
 TYPE classical_type
