@@ -3,7 +3,7 @@ FC = mpif90
 #libraries need for compilation. First line are CP2K general flags. Second line
 #are flags that match specific compilation version of CP2K.
 LIB_CP2K = -lcp2k -ldbcsr
-LIB = $(LIB_CP2K) -lplumed -lxcf03 -lxc -lGXCommon -lgx_ac -lgx_minimax -lint2 -lxsmmf -lxsmmf.1 -lxsmmext -lxsmm -lhdf5_fortran -lhdf5_f90cstub -lhdf5 -lz -lsz  -lcosma_prefixed_pxgemm -lcosma -lcosta -lfftw3_mpi -lfftw3_omp -lfftw3 -lscalapack -lgsl -lopenblas
+#LIB = $(LIB_CP2K) -lplumed -lxcf03 -lxc -lGXCommon -lgx_ac -lgx_minimax -lint2 -lxsmmf -lxsmmf.1 -lxsmmext -lxsmm -lhdf5_fortran -lhdf5_f90cstub -lhdf5 -lz -lsz  -lcosma_prefixed_pxgemm -lcosma -lcosta -lfftw3_mpi -lfftw3_omp -lfftw3 -lscalapack -lgsl -lopenblas
 FLAGS = -O3 -ffree-form -fopenmp -fbacktrace -fallow-argument-mismatch
 
 HDF5_HOME = $(shell brew --prefix hdf5)
@@ -12,7 +12,7 @@ SZ_HOME = $(shell brew --prefix libaec)
 
 #Global paths for the cp2k and dbcsr libraries. This is the location CP2K 
 #puts the library directories
-CP2K_LIB = /Users/john708/Documents/Software/cp2k/lib/Darwin-gnu-arm64/psmp 
+CP2K_LIB = /Users/john708/Documents/Software/cp2k-v2026-mixpi/
 DBCSR_LIB = /Users/john708/Documents/Software/cp2k/lib/Darwin-gnu-arm64/psmp/exts/dbcsr
 BREW_LIB += -L$(HDF5_HOME)/lib
 BREW_LIB += -L$(SZ_HOME)/lib

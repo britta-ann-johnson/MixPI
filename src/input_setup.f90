@@ -51,7 +51,7 @@ read(101,*) md%kin_mass
 write(*,*) 'md%kin_mass is ', md%kin_mass
 read(101,*) md%ensemble
 if (md%method /= 'pimd') write(*,*)' this method is not supported'
-if (md%pimethod /= 'mixts' .or. md%pimethod /= 'allrep') write(*,*)' this PI method is not supported'
+if (trim(adjustl(md%pimethod)) /= 'mixts' .or. trim(adjustl(md%pimethod)) /= 'allrep') write(*,*)' this PI method is not supported ', trim(adjustl(md%pimethod))
 if (md%ensemble == 'nvt') read(101,*) md%thermostat
 if (md%ensemble == 'nvt') read(101,*) md%classical_lang
 if (md%ensemble == 'nvt') read(101,*) md%rp_lang
@@ -67,6 +67,7 @@ read(101,*) md%constraint
 read(101,*) md%print_level
 if (trim(adjustl(md%print_level)) /= 'low' .and. trim(adjustl(md%print_level)) /= 'high') &
     write(*,*)' print_levels are "high" and "low" '
+read(101,*) md%seed
 close(101)
 
 if (para_var%my_rank == 0) then
@@ -225,7 +226,7 @@ END SUBROUTINE read_in_md
 SUBROUTINE set_up_cp2k(para_var)
 implicit none
 TYPE(parallel_env)    :: para_var
-character(len=25)     :: version_cp2k
+character(len=125)     :: version_cp2k
 integer               :: ierror
 include 'mpif.h'
 
@@ -692,7 +693,7 @@ CALL cp2k_create_force_env(classical%cp2k_env_flag,trim(classical%cp2k_input_fil
 ! RELEVANT ARRAYS FOR STORAGE. ------------------- !
 ! ------------------------------------------------ !
 !if (para_var%my_rank == 0) then
-if (md%pimethod == 'mixts') then
+if (trim(adjustl(md%pimethod)) == 'mixts') then
   CALL cp2k_get_natom(classical%cp2k_env_flag, total_natoms)
 
   CALL pimd_initialize(path_integral,md, para_var)
@@ -736,7 +737,7 @@ enddo
 !CALL cp2k_get_potential_energy(classical%cp2k_env_flag, pot_energy)
 !write(*,*)' initial potential energy is ', pot_energy
 
-else if (md%pimethod == 'allrep') then
+else if (trim(adjustl(md%pimethod)) == 'allrep') then
   CALL cp2k_get_natom(classical%cp2k_env_flag, total_natoms)
 
   CALL pimd_initialize(path_integral,md, para_var)
@@ -967,10 +968,10 @@ do i = 1, path_integral%num_rp
     endif
 
 
-    if (md%pimethod == 'mixts') then
+    if (trim(adjustl(md%pimethod)) == 'mixts') then
       path_integral%rp(i)%harm_mass = atom_mass * amutome
       path_integral%rp(i)%charge = atom_charge
-    else if (md%pimethod == 'allrep') then
+    else if (trim(adjustl(md%pimethod)) == 'allrep') then
       path_integral%rp(i)%harm_mass = atom_mass * amutome/dble(real(path_integral%rp(1)%num_beads))
       path_integral%rp(i)%charge = atom_charge /dble(real(path_integral%rp(1)%num_beads))
     else
@@ -982,7 +983,7 @@ do i = 1, path_integral%num_rp
     !path_integral%rp(i)%harm_mass = atom_mass * amutome
     !path_integral%rp(i)%harm_mass = (atom_mass*real(path_integral%rp(i)%num_beads))*amutome
     !path_integral%rp(i)%charge = atom_charge
-    if (md%pimethod == 'mixts') then
+    if (trim(adjustl(md%pimethod)) == 'mixts') then
       do ibead = 2, path_integral%rp(i)%num_beads
         read(103,*) i_dum
         !write(*,*)' read in atom ', i_dum 
@@ -1000,10 +1001,10 @@ do i = 1, path_integral%num_rp
     !  STOP
     !endif
 
-    if (md%pimethod == 'mixts') then
+    if (trim(adjustl(md%pimethod)) == 'mixts') then
       path_integral%rp(i)%harm_mass = atom_mass * amutome
       path_integral%rp(i)%charge = atom_charge
-    else if (md%pimethod == 'allrep') then
+    else if (trim(adjustl(md%pimethod)) == 'allrep') then
       path_integral%rp(i)%harm_mass = atom_mass * amutome/dble(real(path_integral%rp(1)%num_beads))
       path_integral%rp(i)%charge = atom_charge /dble(real(path_integral%rp(1)%num_beads))
     else
@@ -1015,7 +1016,7 @@ do i = 1, path_integral%num_rp
     !path_integral%rp(i)%harm_mass = atom_mass * amutome
     !path_integral%rp(i)%harm_mass = (atom_mass*real(path_integral%rp(i)%num_beads))*amutome
     !path_integral%rp(i)%charge = atom_charge
-    if (md%pimethod == 'mixts') then
+    if (trim(adjustl(md%pimethod)) == 'mixts') then
       do ibead = 2, path_integral%rp(i)%num_beads
         read(103,*) i_dum
         write(*,*)' read in atom ', i_dum 
@@ -1065,7 +1066,7 @@ enddo
 ! INITALIZE THE RANDOM NUMBER GENERATOR. ---------------- !
 ! ------------------------------------------------------- !
 !write(*,*)' init seed - BAJ error'
-call init_rnd_seed()
+call init_rnd_seed(md)
 
 ! ------------------------------------------------------- !
 ! INITALIZE THE VELOCITIES OF THE BEADS AND ---- !
@@ -1637,9 +1638,10 @@ END SUBROUTINE histogram
 ! Subroutine to initialize the seed for the random ---- !
 ! number generator. ----------------------------------- !
 ! ----------------------------------------------------- !
-SUBROUTINE init_rnd_seed()
+SUBROUTINE init_rnd_seed(md)
 implicit none
 
+TYPE(md_info)     :: md
 integer     ::i,n,clock
 integer,dimension(:),allocatable    ::seed
 
@@ -1648,7 +1650,11 @@ allocate(seed(n))
 
 call system_clock(count=clock)
 
-seed = clock + 37 * (/ (i-1,i=1,n) /)
+if (md%seed==0) then
+  seed = clock + 37 * (/ (i-1,i=1,n) /)
+else
+  seed = md%seed
+endif
 call random_seed(put=seed)
 
 deallocate(seed)

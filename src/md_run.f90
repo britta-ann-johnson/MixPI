@@ -137,11 +137,11 @@ if (para_var%my_rank == 0) then
   call system_clock(itime_cstart)
 endif
 !write(333,*)' i = 0'
-if (md%pimethod == 'mixts') then
+if (trim(adjustl(md%pimethod)) == 'mixts') then
   CALL update_force_env_mixts(classical, path_integral, md)
   CALL calc_force_cp2k_mixts(classical, path_integral, md)      !call 1 at initial config. FORCE/ENERGY 
   write(*,*)' after mixts force'
-else if (md%pimethod == 'allrep') then
+else if (trim(adjustl(md%pimethod)) == 'allrep') then
   CALL calc_force_cp2k_allrep(classical, path_integral, md)      !call 1 at initial config. FORCE/energy
   write(*,*)' after allrep force'
 endif
@@ -647,7 +647,7 @@ integer                              ::i, irp, icount, ierror
 
 include 'mpif.h'
 
-if (md%pimethod=='mixts') then
+if (trim(adjustl(md%pimethod))=='mixts') then
   icount = 0
   do irp = 1, path_integral%num_rp
     do i = 1, path_integral%rp(irp)%num_beads
@@ -738,9 +738,9 @@ include 'mpif.h'
 !CALL cp2k_calc_energy_force(classical%cp2k_env_flag)
 !call MPI_BARRIER(MPI_COMM_WORLD,ierror)
 
-if (md%pimethod == 'mixts') then
+if (trim(adjustl(md%pimethod)) == 'mixts') then
   CALL cp2k_get_potential_energy(classical%cp2k_env_flag, pot_energy)
-else if (md%pimethod == 'allrep') then
+else if (trim(adjustl(md%pimethod)) == 'allrep') then
   pot_energy = 0.0d0
   ALLOCATE(positions(path_integral%num_rp*md%space_dim))
   do ibead = 1, path_integral%rp(1)%num_beads
@@ -947,7 +947,7 @@ classical%force = 0.0d0
 do irp = 1, path_integral%num_rp
   path_integral%rp(irp)%force = 0.0d0
 enddo
-if (md%pimethod == 'mixts') then
+if (trim(adjustl(md%pimethod)) == 'mixts') then
   CALL update_force_env_mixts(classical, path_integral, md)
   CALL calc_force_cp2k_mixts(classical, path_integral, md)      !6th call to FORCE/ENERGY      needed
   write(*,*)' after mixts force '
@@ -1037,10 +1037,10 @@ classical%force = 0.0d0
 do irp = 1, path_integral%num_rp
   path_integral%rp(irp)%force = 0.0d0
 enddo
-if (md%pimethod == 'mixts') then
+if (trim(adjustl(md%pimethod)) == 'mixts') then
   CALL update_force_env_mixts(classical, path_integral, md)        
   CALL calc_force_cp2k_mixts(classical, path_integral, md)            !call 3 (after moving classical atoms) FORCE/ENERGY NEEDED
-else if (md%pimethod == 'allrep') then
+else if (trim(adjustl(md%pimethod)) == 'allrep') then
   CALL calc_force_cp2k_allrep(classical, path_integral, md)            !call 3 (after moving classical atoms) FORCE/ENERGY NEEDED
 endif
 CALL calc_force_pi(path_integral, md, 0)
@@ -1208,11 +1208,11 @@ do irp = 1, path_integral%num_rp
     if (location == 0 .and. trim(adjustl(md%xx_types(SIZE(md%xx_types))))=='ALL') then
       location = SIZE(md%xx_types)
     endif
-    if (location == 0) then 
-            write(*,*)' following type has charge but not list ', match_type
-    else
-        write(*,*)' md%xx_types(i) matches match_type ', md%xx_types(location), match_type
-    endif
+    !if (location == 0) then 
+    !        write(*,*)' following type has charge but not list ', match_type
+    !else
+    !     write(*,*)' md%xx_types(i) matches match_type ', md%xx_types(location), match_type
+    !endif
     !write(*,*) 'location is ', location
       !if (location == 0) write(*,*) "ERROR IN RCUT LIST"
     if (location > 0) then
@@ -1638,27 +1638,27 @@ integer         ::crate, itime_cstart, itime_cend
 !    endif
 ! -----------------------
 
-write(888,*) sum(path_integral%rp(:)%num_beads) + classical%natoms
-write(888,*)' dt = ', icount
-do irp = 1, path_integral%num_rp
-  do j = 1, path_integral%rp(irp)%num_beads
-    write(888,'(a2, 6f20.12)') trim(path_integral%rp(irp)%particle_label(j)), path_integral%rp(irp)%force(j,:)
-  enddo
-enddo
-do j = 1, classical%natoms
-  write(888,'(a2, 6f20.12)') trim(classical%atom_kinds(j)), classical%force(j,:)
-enddo
-write(889,*) sum(path_integral%rp(:)%num_beads) + classical%natoms
-write(889,*)' dt = ', dt*(icount-1)
-do irp = 1, path_integral%num_rp
-  do j = 1, path_integral%rp(irp)%num_beads
-    write(889,'(a2, 6f20.12)') trim(path_integral%rp(irp)%particle_label(j)), path_integral%rp(irp)%x(j,:), &
-      path_integral%rp(irp)%p(j,:)
-  enddo
-enddo
-do j = 1, classical%natoms
-  write(889,'(a2, 6f20.12)') trim(classical%atom_kinds(j)), classical%x(j,:),classical%p(j,:)
-enddo
+!write(888,*) sum(path_integral%rp(:)%num_beads) + classical%natoms
+!write(888,*)' dt = ', icount
+!do irp = 1, path_integral%num_rp
+!  do j = 1, path_integral%rp(irp)%num_beads
+!    write(888,'(a2, 6f20.12)') trim(path_integral%rp(irp)%particle_label(j)), path_integral%rp(irp)%force(j,:)
+!  enddo
+!enddo
+!do j = 1, classical%natoms
+!  write(888,'(a2, 6f20.12)') trim(classical%atom_kinds(j)), classical%force(j,:)
+!enddo
+!write(889,*) sum(path_integral%rp(:)%num_beads) + classical%natoms
+!write(889,*)' dt = ', dt*(icount-1)
+!do irp = 1, path_integral%num_rp
+!  do j = 1, path_integral%rp(irp)%num_beads
+!    write(889,'(a2, 6f20.12)') trim(path_integral%rp(irp)%particle_label(j)), path_integral%rp(irp)%x(j,:), &
+!      path_integral%rp(irp)%p(j,:)
+!  enddo
+!enddo
+!do j = 1, classical%natoms
+!  write(889,'(a2, 6f20.12)') trim(classical%atom_kinds(j)), classical%x(j,:),classical%p(j,:)
+!enddo
 
 !write(*,*) 'before print'
 !if (para_var%my_rank == 0) then
@@ -1678,10 +1678,10 @@ enddo
 !endif
 !endif
 
-write(444,*) 'original pi is ', icount, path_integral%rp(1)%p(1,1), path_integral%rp(2)%p(1,1), path_integral%rp(3)%p(1,1)
-write(444,*) 'original f is ', path_integral%rp(1)%force(1,1), path_integral%rp(2)%force(1,1), path_integral%rp(3)%force(1,1)
+!write(444,*) 'original pi is ', icount, path_integral%rp(1)%p(1,1), path_integral%rp(2)%p(1,1), path_integral%rp(3)%p(1,1)
+!write(444,*) 'original f is ', path_integral%rp(1)%force(1,1), path_integral%rp(2)%force(1,1), path_integral%rp(3)%force(1,1)
 CALL update_pi_p(path_integral, dt)
-write(444,*) 'update pi is ', icount, path_integral%rp(1)%p(1,1), path_integral%rp(2)%p(1,1), path_integral%rp(3)%p(1,1)
+!write(444,*) 'update pi is ', icount, path_integral%rp(1)%p(1,1), path_integral%rp(2)%p(1,1), path_integral%rp(3)%p(1,1)
     if (icount <= md%print_step .and. para_var%my_rank == 0) then
       call system_clock(count_rate=crate)
       call system_clock(itime_cstart)
@@ -1705,7 +1705,7 @@ CALL manual_normal_to_cart(path_integral, md, icount)
       close(111)
     endif
 
-write(444,*) 'update x is ', path_integral%rp(1)%x(1,1), path_integral%rp(2)%x(1,1), path_integral%rp(3)%x(1,1)
+!write(444,*) 'update x is ', path_integral%rp(1)%x(1,1), path_integral%rp(2)%x(1,1), path_integral%rp(3)%x(1,1)
 do irp = 1, path_integral%num_rp
   do i = 1, md%space_dim
     path_integral%rp(irp)%centroid(i) = sum(path_integral%rp(irp)%x(:,i))&
@@ -1723,18 +1723,18 @@ enddo
       call system_clock(itime_cstart)
     endif
 !write(333,*)' i = ', icount
-if (md%pimethod == 'mixts') then 
+if (trim(adjustl(md%pimethod)) == 'mixts') then 
   CALL update_force_env_mixts(classical, path_integral, md)      !5th call to calculcate FORCE/ENERGY needed
   CALL calc_force_cp2k_mixts(classical, path_integral, md)
-  write(*,*)' after mixts force'
-else if (md%pimethod == 'allrep') then
+  !write(*,*)' after mixts force'
+else if (trim(adjustl(md%pimethod)) == 'allrep') then
   CALL calc_force_cp2k_allrep(classical, path_integral, md)
-  write(*,*)' after allrep force'
+  !write(*,*)' after allrep force'
 else 
   write(*,*)' ERROR IN ALLREP FORCE CALL'
   STOP
 endif
-write(444,*) 'update f is ', path_integral%rp(1)%force(1,1), path_integral%rp(2)%force(1,1), path_integral%rp(3)%force(1,1)
+!write(444,*) 'update f is ', path_integral%rp(1)%force(1,1), path_integral%rp(2)%force(1,1), path_integral%rp(3)%force(1,1)
     if (icount <= md%print_step .and. para_var%my_rank == 0) then
       call system_clock(itime_cend)
       open(111,file='runtime_info.dat',position='append')
@@ -1743,29 +1743,29 @@ write(444,*) 'update f is ', path_integral%rp(1)%force(1,1), path_integral%rp(2)
 CALL calc_force_pi(path_integral, md, 0)
 
 CALL update_pi_p(path_integral, dt)
-write(444,*) 'update pi is ', path_integral%rp(1)%p(1,1), path_integral%rp(2)%p(1,1), path_integral%rp(3)%p(1,1)
+!write(444,*) 'update pi is ', path_integral%rp(1)%p(1,1), path_integral%rp(2)%p(1,1), path_integral%rp(3)%p(1,1)
 
-write(888,*) sum(path_integral%rp(:)%num_beads) + classical%natoms
-write(888,*)' dt = ', icount
-do irp = 1, path_integral%num_rp
-  do j = 1, path_integral%rp(irp)%num_beads
-    write(888,'(a2, 6f20.12)') trim(path_integral%rp(irp)%particle_label(j)), path_integral%rp(irp)%force(j,:)
-  enddo
-enddo
-do j = 1, classical%natoms
-  write(888,'(a2, 6f20.12)') trim(classical%atom_kinds(j)), classical%force(j,:)
-enddo
-write(889,*) sum(path_integral%rp(:)%num_beads) + classical%natoms
-write(889,*)' dt = ', icount
-do irp = 1, path_integral%num_rp
-  do j = 1, path_integral%rp(irp)%num_beads
-    write(889,'(a2, 6f20.12)') trim(path_integral%rp(irp)%particle_label(j)), path_integral%rp(irp)%x(j,:), &
-      path_integral%rp(irp)%p(j,:)
-  enddo
-enddo
-do j = 1, classical%natoms
-  write(889,'(a2, 6f20.12)') trim(classical%atom_kinds(j)), classical%x(j,:),classical%p(j,:)
-enddo
+!write(888,*) sum(path_integral%rp(:)%num_beads) + classical%natoms
+!write(888,*)' dt = ', icount
+!do irp = 1, path_integral%num_rp
+!  do j = 1, path_integral%rp(irp)%num_beads
+!    write(888,'(a2, 6f20.12)') trim(path_integral%rp(irp)%particle_label(j)), path_integral%rp(irp)%force(j,:)
+!  enddo
+!enddo
+!do j = 1, classical%natoms
+!  write(888,'(a2, 6f20.12)') trim(classical%atom_kinds(j)), classical%force(j,:)
+!enddo
+!write(889,*) sum(path_integral%rp(:)%num_beads) + classical%natoms
+!write(889,*)' dt = ', icount
+!do irp = 1, path_integral%num_rp
+!  do j = 1, path_integral%rp(irp)%num_beads
+!    write(889,'(a2, 6f20.12)') trim(path_integral%rp(irp)%particle_label(j)), path_integral%rp(irp)%x(j,:), &
+!      path_integral%rp(irp)%p(j,:)
+!  enddo
+!enddo
+!do j = 1, classical%natoms
+!  write(889,'(a2, 6f20.12)') trim(classical%atom_kinds(j)), classical%x(j,:),classical%p(j,:)
+!enddo
 
 END SUBROUTINE vv_update_pi_normal_manual
 

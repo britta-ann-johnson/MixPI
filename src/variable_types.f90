@@ -92,6 +92,7 @@ TYPE md_info
   REAL(kind=8)                                       ::xx_charge
   INTEGER                                            ::run_average
   LOGICAL                                            ::kin_mass
+  INTEGER                                            ::seed
 END TYPE md_info
 
 TYPE classical_type
