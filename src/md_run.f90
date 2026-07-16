@@ -303,9 +303,10 @@ do istep = 1, md%nsteps
      ! VELOCITY-VERLET STEP WITH THE CLASSICAL ATOMS - !
      ! FOR A TIMESTEP OF DT/2 ------------------------ !
      ! ----------------------------------------------- !
-  if (classical%natoms > 0) then
-    CALL vv_update_classical(classical, path_integral, md, md%dt/2.0d0, istep, para_var)
-  endif
+  !if (classical%natoms > 0) then
+  !  CALL vv_update_classical(classical, path_integral, md, md%dt/2.0d0, istep, para_var)
+  !endif
+  !EVENTUALLY CHANGE ABOVE TO ACCOMODATE AN OUTER LOOP
 
   if (trim(md%propagation) == 'normal_fftw' .and. path_integral%num_rp > 0) then
      !  write(*,*)' vv_update_pi BAJ error'
@@ -350,9 +351,9 @@ do istep = 1, md%nsteps
   !classical%force = 0.0d0
   ! ---------------------- !
 
-  if (classical%natoms > 0) then
-    CALL vv_update_classical(classical, path_integral, md, md%dt/2.d0, istep, para_var)
-  endif
+  !if (classical%natoms > 0) then
+  !  CALL vv_update_classical(classical, path_integral, md, md%dt/2.d0, istep, para_var)
+  !endif
 
     ! --------------------------------------------- !
     ! Second call to the thermostat --------------- !
@@ -1680,6 +1681,10 @@ integer         ::crate, itime_cstart, itime_cend
 
 !write(444,*) 'original pi is ', icount, path_integral%rp(1)%p(1,1), path_integral%rp(2)%p(1,1), path_integral%rp(3)%p(1,1)
 !write(444,*) 'original f is ', path_integral%rp(1)%force(1,1), path_integral%rp(2)%force(1,1), path_integral%rp(3)%force(1,1)
+if (classical%natoms > 0) then
+  CALL update_classical_p(classical, dt)                      
+  CALL update_classical_x(classical, dt)
+endif
 CALL update_pi_p(path_integral, dt)
 !write(444,*) 'update pi is ', icount, path_integral%rp(1)%p(1,1), path_integral%rp(2)%p(1,1), path_integral%rp(3)%p(1,1)
     if (icount <= md%print_step .and. para_var%my_rank == 0) then
@@ -1743,6 +1748,9 @@ endif
 CALL calc_force_pi(path_integral, md, 0)
 
 CALL update_pi_p(path_integral, dt)
+if (classical%natoms > 0) then
+  CALL update_classical_p(classical, dt)                      
+endif
 !write(444,*) 'update pi is ', path_integral%rp(1)%p(1,1), path_integral%rp(2)%p(1,1), path_integral%rp(3)%p(1,1)
 
 !write(888,*) sum(path_integral%rp(:)%num_beads) + classical%natoms
