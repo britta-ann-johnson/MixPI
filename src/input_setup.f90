@@ -1230,9 +1230,9 @@ do iatom = 1, classical%natoms
   do i = 1, md%space_dim
     CALL rnd_gauss(0.0d0,dsqrt(1.0d0/( classical%beta * classical%mass(iatom) )), rnd_vel)
     classical%i_velocity(iatom,i) = rnd_vel
-    write(*,*)' rnd vel is ', rnd_vel
-    write(*,*)' classical%beta is ', classical%beta
-    write(*,*)' classical%mass is ', classical%mass(iatom)
+    !write(*,*)' rnd vel is ', rnd_vel
+    !write(*,*)' classical%beta is ', classical%beta
+    !write(*,*)' classical%mass is ', classical%mass(iatom)
   enddo
   !open(222,file='atom-vel-2.dat')
   !do i = 1, classical%natoms
