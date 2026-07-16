@@ -1290,8 +1290,8 @@ do iclassical = 1, classical%natoms
     endif
     if (location == 0) then 
             write(*,*)' following type has charge but not list ', match_type
-    else
-        write(*,*)' md%xx_types(i) matches match_type ', md%xx_types(location), match_type
+    !else
+    !    write(*,*)' md%xx_types(i) matches match_type ', md%xx_types(location), match_type
     endif
     !write(*,*) 'location is ', location
     if (location > 0) then
